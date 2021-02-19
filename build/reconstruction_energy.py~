@@ -1,0 +1,136 @@
+import ROOT
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+import math
+import scipy.optimize as opt
+import matplotlib.mlab as mlab
+import numpy as np
+from scipy.stats import norm
+from scipy.optimize import curve_fit
+
+import momentum_track_reconstruction as constr
+
+
+# Arrays and files #
+case = input("chose the case to study by entering : 1 for antimuon, 2 for positron, 3 for proton  \n")
+if case == 1 :
+    inf = ROOT.TFile.Open("B5_out_mu_100GeV_05T.root")
+    tree = inf.Get("B5")
+    name_file = "mu_100GeV_05T"
+    B = 0.5
+    q = 1.
+    f = 1.
+    mass = 105.66E-3 #MeV
+elif case == 2:
+    inf = ROOT.TFile.Open("B5_out_e_100GeV_05T.root")
+    tree = inf.Get("B5")
+    name_file = "e_100GeV_05T"
+    B = 0.5
+    q = 1.
+    f = 1.
+    mass = 0.51E-3 #MeV 
+elif case == 3 :
+    inf = ROOT.TFile.Open("B5_out_p_100GeV_05T.root")
+    tree = inf.Get("B5")
+    name_file = "p_100GeV_05T"
+    B = 0.5
+    q = 1.
+    f = -1.
+    mass = 938.27E-3 #MeV     
+else :
+    print("not defined case")
+
+ecal_energy = []
+hcal_energy = []
+ecal_energy_vector = []
+hcal_energy_vector = []
+momentum = []
+
+def plotEnergy(energy,name): # Plots reconstructed energy as a histogram
+    plt.clf()
+    n, bins, patches = plt.hist(energy, bins=50, edgecolor = "k", color = "firebrick", alpha = 0.8, histtype = 'stepfilled')
+    plt.xticks(fontsize = 16)
+    plt.yticks(fontsize = 16)
+    plt.xlabel("Reconstructed energy [GeV]", fontsize = 20)
+    plt.ylabel("Number of events", fontsize = 20)
+    plt.tick_params(right=True, top=True)
+    plt.minorticks_on() 
+    plt.tick_params(axis="both",which = "both", direction="in")
+#    plt.annotate(label, xy=(0.9, 0.91), xycoords='axes fraction', fontsize = 24, alpha = 0.8)
+    plt.show()
+    plt.savefig("Reconstructed_energy_"+name+".pdf")
+    return n, bins
+
+
+def theorical_energy(momentum,mass):
+    theo_energy = [np.sqrt(i**2 + mass**2) for i in momentum]
+    return theo_energy
+
+
+#def electro_Correction(energy,f):
+#    Z_CsI = 54
+#    X0_CsI = 1.86E-2
+#    energy_crit = 0.610/(Z_CsI+1.24)
+#    t_em = 0.3/X0_CsI
+#    t_max=[]
+#    for i in len(energy): t_max.append(np.log(energy[i]/energy_crit)-f*0.5)
+#    t_max = [np.log(i/energy_crit)-f*0.5 for i in energy]
+#    t_95 = [i + 0.08*Z_CsI + 9.6 for i in t_max]
+#    energy_crit_corr = (t_95/t_max)*energy_crit
+#    return energy_crit_corr*(1-np.exp(t_95))/(1-np.exp(t_em))
+
+#def hadro_Correction(energyVector):
+#    E0 = 1.3
+#    hadronN = np.array([len(evt[evt>E0]) for evt in energyVector])
+#    return hadronN*E0
+    
+def TotalEnergy(electro_energy,hadro_energy,hcal_energy_vector,f=1,electro_correct=True,hadro_correct=True):
+    if hadro_correct==False:
+        hadro_correction=0
+    else:
+        hadro_correction = hadro_Correction(hcal_energy_vector)
+
+    if electro_correct==True:
+        electro_correction = electro_Correction(electro_energy,f)
+    else:
+        electro_correction = 0
+
+    total=electro_energy/1000+electro_correction+hadro_energy/1000+hadro_correction
+    return total
+
+
+
+for event in tree: # Main function to run
+    if event.ECEnergy != 0:
+        ecal_energy.append(event.ECEnergy)
+#        ecal_energy_vector.append(event.ECEnergyVector/1000)
+    if event.HCEnergy != 0:
+        hcal_energy.append(event.HCEnergy)
+#        hcal_energy_vector.append(event.HCEnergyVector/1000)
+    if len(event.Dc1HitsVector_x)==5 and len(event.Dc2HitsVector_x)==5:
+        m1,c1,position1 = constr.trackReconstruction(event, 1)
+        m2,c2,position2 = constr.trackReconstruction(event, 2)
+        recMom = constr.determineMomentum(m1,c1,m2,c2)
+        momentum.append(abs(recMom))
+
+
+#energy_eleccorr = TotalEnergy(ecal_energy,hcal_energy,hcal_energy_vector,f,electro_correct=True,hadro_correct=False)    
+#energy_hadrcorr = TotalEnergy(ecal_energy,hcal_energy,hcal_energy_vector,f,electro_correct=False,hadro_correct=True)
+#energy_allcorr = TotalEnergy(ecal_energy,hcal_energy,hcal_energy_vector,f,electro_correct=True,hadro_correct=True)
+energy_nocorr = ecal_energy+hcal_energy
+energy_theo = theorical_energy(momentum,mass)
+
+
+n, bins = plotEnergy(ecal_energy,name=name_file+"elec_wo_corr")
+
+n2, bins2 = plotEnergy(hcal_energy,name=name_file+"hadro_wo_corr")
+
+#n3, bins3 = plotEnergy(energy_eleccorr,name="elec_with_corr")
+
+#n4, bins4 = plotEnergy(energy_hadrcorr,name="hadro_with_corr")
+
+#n5, bins5 = plotEnergy(energy_allcorr,name="total_all_corr")
+
+n6, bins6 = plotEnergy(energy_nocorr,name=name_file+"total_wo_corr")
+
+n7, bins7 = plotEnergy(energy_theo,name=name_file+"total_theo")

@@ -1,0 +1,7 @@
+
+Fitted Mean Momentum: nan GeV 
+Fitted Resolution: nan GeV 
+Fitted Resolution/momentum: nan 
+
+a ECal Energy: 0.00e+00 
+a HCal Energy: 0.00e+00 

@@ -1,0 +1,23 @@
+# Macro file for example B5
+# 
+# To be run preferably in batch, without graphics:
+# % exampleB5 run_ex1.mac
+#
+#/run/numberOfWorkers 4
+/run/initialize
+#
+#  turn off randomization 
+#
+/B5/generator/randomizePrimary FALSE
+/B5/generator/sigmaMomentum 0. 
+/B5/generator/sigmaAngle 0.
+/run/verbose 1
+/run/printProgress 0
+#
+/gun/particle mu+
+/B5/detector/armAngle 0. deg
+/B5/generator/momentum 100. GeV
+/B5/field/value 0.5 tesla
+/analysis/setFileName B5_out_mu_100GeV_05T_bef_lead
+/run/beamOn 1000
+
